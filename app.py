@@ -168,6 +168,78 @@ def cadastrar_pedido():
         "mensagem": "Pedido criado com sucesso"
     }), 201
 
+# ==========================================
+# PAGAMENTOS
+# ==========================================
+
+# Retorna todos os pagamentos cadastrados
+@app.route('/pagamentos')
+def listar_pagamentos():
+
+    cursor = conexao.cursor()
+
+    cursor.execute("""
+        SELECT id_pagamento,
+               id_pedido,
+               status,
+               data_pagamento,
+               metodo_pagamento
+        FROM PAGAMENTO
+    """)
+
+    pagamentos = []
+
+    for pagamento in cursor.fetchall():
+
+        pagamentos.append({
+            "id_pagamento": pagamento.id_pagamento,
+            "id_pedido": pagamento.id_pedido,
+            "status": pagamento.status,
+            "data_pagamento": str(pagamento.data_pagamento),
+            "metodo_pagamento": pagamento.metodo_pagamento
+        })
+
+    return jsonify(pagamentos)
+
+
+# Registra um pagamento mock e atualiza o status do pedido
+@app.route('/pagamentos', methods=['POST'])
+def cadastrar_pagamento():
+
+    dados = request.get_json()
+
+    id_pedido = dados['id_pedido']
+    metodo_pagamento = dados['metodo_pagamento']
+    aprovado = dados['aprovado']
+
+    if aprovado == True:
+        status_pagamento = 'APROVADO'
+        status_pedido = 'PAGO'
+    else:
+        status_pagamento = 'RECUSADO'
+        status_pedido = 'PAGAMENTO_RECUSADO'
+
+    cursor = conexao.cursor()
+
+    cursor.execute("""
+        INSERT INTO PAGAMENTO
+        (id_pedido, status, metodo_pagamento)
+        VALUES (?, ?, ?)
+    """, id_pedido, status_pagamento, metodo_pagamento)
+
+    cursor.execute("""
+        UPDATE PEDIDO
+        SET status = ?
+        WHERE id_pedido = ?
+    """, status_pedido, id_pedido)
+
+    conexao.commit()
+
+    return jsonify({
+        "mensagem": "Pagamento processado com sucesso",
+        "status_pagamento": status_pagamento,
+        "status_pedido": status_pedido
+    }), 201
 
 # ==========================================
 # INICIALIZAÇÃO DA API
