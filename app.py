@@ -1,4 +1,4 @@
-from flask import Flask
+from flask import Flask, request, jsonify
 import pyodbc
 
 app = Flask(__name__)
@@ -10,11 +10,13 @@ conexao = pyodbc.connect(
     "Trusted_Connection=yes;"
 )
 
+# Página inicial
 @app.route('/')
 def home():
     return 'API Raizes do Nordeste funcionando'
 
 
+# Listar produtos
 @app.route('/produtos')
 def listar_produtos():
 
@@ -35,9 +37,10 @@ def listar_produtos():
             "preco": float(produto.preco)
         })
 
-    return produtos
+    return jsonify(produtos)
 
 
+# Listar clientes
 @app.route('/clientes')
 def listar_clientes():
 
@@ -59,7 +62,32 @@ def listar_clientes():
             "telefone": cliente.telefone
         })
 
-    return clientes
+    return jsonify(clientes)
+
+
+# Cadastrar cliente
+@app.route('/clientes', methods=['POST'])
+def cadastrar_cliente():
+
+    dados = request.get_json()
+
+    nome = dados['nome']
+    email = dados['email']
+    telefone = dados['telefone']
+
+    cursor = conexao.cursor()
+
+    cursor.execute("""
+        INSERT INTO CLIENTE (nome, email, telefone)
+        VALUES (?, ?, ?)
+    """, nome, email, telefone)
+
+    conexao.commit()
+
+    return jsonify({
+        "mensagem": "Cliente cadastrado com sucesso"
+    }), 201
+
 
 if __name__ == '__main__':
     app.run(debug=True)
