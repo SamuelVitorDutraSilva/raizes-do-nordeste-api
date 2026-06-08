@@ -38,5 +38,28 @@ def listar_produtos():
     return produtos
 
 
+@app.route('/clientes')
+def listar_clientes():
+
+    cursor = conexao.cursor()
+
+    cursor.execute("""
+        SELECT id_cliente, nome, email, telefone
+        FROM CLIENTE
+    """)
+
+    clientes = []
+
+    for cliente in cursor.fetchall():
+
+        clientes.append({
+            "id": cliente.id_cliente,
+            "nome": cliente.nome,
+            "email": cliente.email,
+            "telefone": cliente.telefone
+        })
+
+    return clientes
+
 if __name__ == '__main__':
     app.run(debug=True)
