@@ -3,6 +3,9 @@ import pyodbc
 
 app = Flask(__name__)
 
+# ==========================================
+# Conexão com o banco de dados SQL Server
+# ==========================================
 conexao = pyodbc.connect(
     "DRIVER={ODBC Driver 17 for SQL Server};"
     "SERVER=Samtop;"
@@ -10,13 +13,21 @@ conexao = pyodbc.connect(
     "Trusted_Connection=yes;"
 )
 
-# Página inicial
+# ==========================================
+# ENDPOINT INICIAL
+# ==========================================
+
+# Verifica se a API está funcionando
 @app.route('/')
 def home():
     return 'API Raizes do Nordeste funcionando'
 
 
-# Listar produtos
+# ==========================================
+# PRODUTOS
+# ==========================================
+
+# Retorna todos os produtos cadastrados
 @app.route('/produtos')
 def listar_produtos():
 
@@ -37,10 +48,15 @@ def listar_produtos():
             "preco": float(produto.preco)
         })
 
+    # Retorna os dados em formato JSON
     return jsonify(produtos)
 
 
-# Listar clientes
+# ==========================================
+# CLIENTES
+# ==========================================
+
+# Retorna todos os clientes cadastrados
 @app.route('/clientes')
 def listar_clientes():
 
@@ -62,13 +78,15 @@ def listar_clientes():
             "telefone": cliente.telefone
         })
 
+    # Retorna os dados em formato JSON
     return jsonify(clientes)
 
 
-# Cadastrar cliente
+# Cadastra um novo cliente
 @app.route('/clientes', methods=['POST'])
 def cadastrar_cliente():
 
+    # Recebe os dados enviados pelo Postman
     dados = request.get_json()
 
     nome = dados['nome']
@@ -82,6 +100,7 @@ def cadastrar_cliente():
         VALUES (?, ?, ?)
     """, nome, email, telefone)
 
+    # Salva as alterações no banco
     conexao.commit()
 
     return jsonify({
@@ -89,5 +108,71 @@ def cadastrar_cliente():
     }), 201
 
 
+# ==========================================
+# PEDIDOS
+# ==========================================
+
+# Retorna todos os pedidos cadastrados
+@app.route('/pedidos')
+def listar_pedidos():
+
+    cursor = conexao.cursor()
+
+    cursor.execute("""
+        SELECT id_pedido,
+               id_cliente,
+               data_pedido,
+               status,
+               valor_total
+        FROM PEDIDO
+    """)
+
+    pedidos = []
+
+    for pedido in cursor.fetchall():
+
+        pedidos.append({
+            "id_pedido": pedido.id_pedido,
+            "id_cliente": pedido.id_cliente,
+            "data_pedido": str(pedido.data_pedido),
+            "status": pedido.status,
+            "valor_total": float(pedido.valor_total)
+        })
+
+    # Retorna os dados em formato JSON
+    return jsonify(pedidos)
+
+
+# Cria um novo pedido para um cliente
+@app.route('/pedidos', methods=['POST'])
+def cadastrar_pedido():
+
+    # Recebe os dados enviados pelo Postman
+    dados = request.get_json()
+
+    id_cliente = dados['id_cliente']
+    valor_total = dados['valor_total']
+
+    cursor = conexao.cursor()
+
+    cursor.execute("""
+        INSERT INTO PEDIDO
+        (id_cliente, valor_total)
+        VALUES (?, ?)
+    """, id_cliente, valor_total)
+
+    # Salva as alterações no banco
+    conexao.commit()
+
+    return jsonify({
+        "mensagem": "Pedido criado com sucesso"
+    }), 201
+
+
+# ==========================================
+# INICIALIZAÇÃO DA API
+# ==========================================
+
+# Executa a aplicação Flask em modo de desenvolvimento
 if __name__ == '__main__':
     app.run(debug=True)
