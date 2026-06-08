@@ -1,16 +1,19 @@
-# Raízes do Nordeste API
+Funcionalidades:
 
-Projeto desenvolvido para a disciplina Projeto Multidisciplinar - Trilha Back-End.
-
-Tecnologias utilizadas:
-
-- Python
-- Flask
-- SQL Server
-- pyodbc
-
-Funcionalidades atuais:
-
-- Conexão com SQL Server
 - Consulta de produtos
-- Endpoint GET /produtos
+- Cadastro de clientes
+- Consulta de clientes
+- Cadastro de pedidos
+- Consulta de pedidos
+- Registro de pagamento mock
+- Atualização automática do status do pedido
+
+Endpoints:
+
+GET /produtos
+GET /clientes
+POST /clientes
+GET /pedidos
+POST /pedidos
+GET /pagamentos
+POST /pagamentos
