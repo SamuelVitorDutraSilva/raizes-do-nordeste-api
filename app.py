@@ -239,6 +239,20 @@ def cadastrar_pagamento():
 
     cursor = conexao.cursor()
 
+    # Verifica se o pedido existe
+    cursor.execute("""
+        SELECT id_pedido
+        FROM PEDIDO
+        WHERE id_pedido = ?
+    """, id_pedido)
+
+    pedido = cursor.fetchone()
+
+    if pedido is None:
+        return jsonify({
+            "erro": "Pedido não encontrado"
+        }), 404
+
     cursor.execute("""
         INSERT INTO PAGAMENTO
         (id_pedido, status, metodo_pagamento)
