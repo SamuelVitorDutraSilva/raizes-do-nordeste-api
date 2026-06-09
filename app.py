@@ -159,6 +159,20 @@ def cadastrar_pedido():
 
     cursor = conexao.cursor()
 
+    # Verifica se o cliente existe
+    cursor.execute("""
+        SELECT id_cliente
+        FROM CLIENTE
+        WHERE id_cliente = ?
+    """, id_cliente)
+
+    cliente = cursor.fetchone()
+
+    if cliente is None:
+        return jsonify({
+            "erro": "Cliente não encontrado"
+        }), 404
+
     cursor.execute("""
         INSERT INTO PEDIDO
         (id_cliente, valor_total)
