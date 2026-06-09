@@ -86,8 +86,12 @@ def listar_clientes():
 @app.route('/clientes', methods=['POST'])
 def cadastrar_cliente():
 
-    # Recebe os dados enviados pelo Postman
     dados = request.get_json()
+
+    if not dados.get('nome'):
+        return jsonify({
+            "erro": "Campo nome é obrigatório"
+        }), 422
 
     nome = dados['nome']
     email = dados['email']
