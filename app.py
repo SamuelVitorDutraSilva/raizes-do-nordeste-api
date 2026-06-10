@@ -1,7 +1,11 @@
 from flask import Flask, request, jsonify
+from flask_jwt_extended import JWTManager, create_access_token, jwt_required
 import pyodbc
 
 app = Flask(__name__)
+
+app.config["JWT_SECRET_KEY"] = "chave-secreta-raizes-do-nordeste"
+jwt = JWTManager(app)
 
 # ==========================================
 # Conexão com o banco de dados SQL Server
@@ -17,17 +21,50 @@ conexao = pyodbc.connect(
 # ENDPOINT INICIAL
 # ==========================================
 
-# Verifica se a API está funcionando
 @app.route('/')
 def home():
     return 'API Raizes do Nordeste funcionando'
 
 
 # ==========================================
+# AUTENTICAÇÃO
+# ==========================================
+
+@app.route('/login', methods=['POST'])
+def login():
+
+    dados = request.get_json()
+
+    email = dados['email']
+    senha = dados['senha']
+
+    cursor = conexao.cursor()
+
+    cursor.execute("""
+        SELECT id_usuario, nome, email
+        FROM USUARIO
+        WHERE email = ? AND senha = ?
+    """, email, senha)
+
+    usuario = cursor.fetchone()
+
+    if usuario is None:
+        return jsonify({
+            "erro": "E-mail ou senha inválidos"
+        }), 401
+
+    token = create_access_token(identity=str(usuario.id_usuario))
+
+    return jsonify({
+        "mensagem": "Login realizado com sucesso",
+        "access_token": token
+    }), 200
+
+
+# ==========================================
 # PRODUTOS
 # ==========================================
 
-# Retorna todos os produtos cadastrados
 @app.route('/produtos')
 def listar_produtos():
 
@@ -48,7 +85,6 @@ def listar_produtos():
             "preco": float(produto.preco)
         })
 
-    # Retorna os dados em formato JSON
     return jsonify(produtos)
 
 
@@ -56,8 +92,8 @@ def listar_produtos():
 # CLIENTES
 # ==========================================
 
-# Retorna todos os clientes cadastrados
 @app.route('/clientes')
+@jwt_required()
 def listar_clientes():
 
     cursor = conexao.cursor()
@@ -78,11 +114,9 @@ def listar_clientes():
             "telefone": cliente.telefone
         })
 
-    # Retorna os dados em formato JSON
     return jsonify(clientes)
 
 
-# Cadastra um novo cliente
 @app.route('/clientes', methods=['POST'])
 def cadastrar_cliente():
 
@@ -104,7 +138,6 @@ def cadastrar_cliente():
         VALUES (?, ?, ?)
     """, nome, email, telefone)
 
-    # Salva as alterações no banco
     conexao.commit()
 
     return jsonify({
@@ -116,8 +149,8 @@ def cadastrar_cliente():
 # PEDIDOS
 # ==========================================
 
-# Retorna todos os pedidos cadastrados
 @app.route('/pedidos')
+@jwt_required()
 def listar_pedidos():
 
     cursor = conexao.cursor()
@@ -143,15 +176,13 @@ def listar_pedidos():
             "valor_total": float(pedido.valor_total)
         })
 
-    # Retorna os dados em formato JSON
     return jsonify(pedidos)
 
 
-# Cria um novo pedido para um cliente
 @app.route('/pedidos', methods=['POST'])
+@jwt_required()
 def cadastrar_pedido():
 
-    # Recebe os dados enviados pelo Postman
     dados = request.get_json()
 
     id_cliente = dados['id_cliente']
@@ -159,7 +190,6 @@ def cadastrar_pedido():
 
     cursor = conexao.cursor()
 
-    # Verifica se o cliente existe
     cursor.execute("""
         SELECT id_cliente
         FROM CLIENTE
@@ -179,19 +209,19 @@ def cadastrar_pedido():
         VALUES (?, ?)
     """, id_cliente, valor_total)
 
-    # Salva as alterações no banco
     conexao.commit()
 
     return jsonify({
         "mensagem": "Pedido criado com sucesso"
     }), 201
 
+
 # ==========================================
 # PAGAMENTOS
 # ==========================================
 
-# Retorna todos os pagamentos cadastrados
 @app.route('/pagamentos')
+@jwt_required()
 def listar_pagamentos():
 
     cursor = conexao.cursor()
@@ -220,8 +250,8 @@ def listar_pagamentos():
     return jsonify(pagamentos)
 
 
-# Registra um pagamento mock e atualiza o status do pedido
 @app.route('/pagamentos', methods=['POST'])
+@jwt_required()
 def cadastrar_pagamento():
 
     dados = request.get_json()
@@ -239,7 +269,6 @@ def cadastrar_pagamento():
 
     cursor = conexao.cursor()
 
-    # Verifica se o pedido existe
     cursor.execute("""
         SELECT id_pedido
         FROM PEDIDO
@@ -273,10 +302,10 @@ def cadastrar_pagamento():
         "status_pedido": status_pedido
     }), 201
 
+
 # ==========================================
 # INICIALIZAÇÃO DA API
 # ==========================================
 
-# Executa a aplicação Flask em modo de desenvolvimento
 if __name__ == '__main__':
     app.run(debug=True)
